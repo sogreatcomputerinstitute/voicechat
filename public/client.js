@@ -77,9 +77,11 @@ function streamToJSON(stream) {
 
 function jsonToStream(streamObj) {
     const stream = new MediaStream();
-    streamObj.tracks.forEach(trackObj => {
-        navigator.mediaDevices.enumerateDevices().then(devices => {
-            devices.forEach(device => {
+    
+    // Enumerate devices to find the correct tracks
+    navigator.mediaDevices.enumerateDevices().then(devices => {
+        devices.forEach(device => {
+            streamObj.tracks.forEach(trackObj => {
                 if (device.kind === trackObj.kind && device.label === trackObj.label) {
                     navigator.mediaDevices.getUserMedia({
                         [trackObj.kind]: { deviceId: { exact: device.deviceId } }
@@ -87,6 +89,9 @@ function jsonToStream(streamObj) {
                         const track = deviceStream.getTracks().find(t => t.kind === trackObj.kind);
                         if (track) {
                             stream.addTrack(track);
+                            if (!stream.active) {
+                                stream.active = true;
+                            }
                         }
                     }).catch(error => {
                         console.error('Error accessing media devices:', error);
@@ -94,10 +99,12 @@ function jsonToStream(streamObj) {
                 }
             });
         });
+    }).catch(error => {
+        console.error('Error enumerating devices:', error);
     });
+
     return stream;
 }
-
 
 socket.on('userJoined', (username) => {
     console.log(`${username} has joined the chat.`);
