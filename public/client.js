@@ -78,15 +78,26 @@ function streamToJSON(stream) {
 function jsonToStream(streamObj) {
     const stream = new MediaStream();
     streamObj.tracks.forEach(trackObj => {
-        const track = new MediaStreamTrack({
-            kind: trackObj.kind,
-            label: trackObj.label,
-            enabled: trackObj.enabled
+        navigator.mediaDevices.enumerateDevices().then(devices => {
+            devices.forEach(device => {
+                if (device.kind === trackObj.kind && device.label === trackObj.label) {
+                    navigator.mediaDevices.getUserMedia({
+                        [trackObj.kind]: { deviceId: { exact: device.deviceId } }
+                    }).then(deviceStream => {
+                        const track = deviceStream.getTracks().find(t => t.kind === trackObj.kind);
+                        if (track) {
+                            stream.addTrack(track);
+                        }
+                    }).catch(error => {
+                        console.error('Error accessing media devices:', error);
+                    });
+                }
+            });
         });
-        stream.addTrack(track);
     });
     return stream;
 }
+
 
 socket.on('userJoined', (username) => {
     console.log(`${username} has joined the chat.`);
