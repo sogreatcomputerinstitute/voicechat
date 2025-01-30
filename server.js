@@ -36,11 +36,12 @@ io.on('connection', (socket) => {
         io.emit('updateUsers', users);
     });
 
-    socket.on('mediaStream', (stream) => {
-        userStreams[socket.id] = stream;
-        socket.broadcast.emit('mediaStream', stream, users[socket.id]);
+  socket.on('mediaStream', (streamObj) => {
+        const username = socket.username;
+        console.log('Media stream received.');
+        // Broadcast the stream to all connected clients
+        socket.broadcast.emit('mediaStream', streamObj, username);
     });
-});
 
 server.listen(3000, () => {
     console.log('Server is listening on port 3000');
