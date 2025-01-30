@@ -171,3 +171,23 @@ function startMediaStream(username) {
             console.error('Error accessing media devices:', error);
         });
 }
+function addStreamToVideoElement(stream, username) {
+    console.log('Received stream:', stream);
+    console.log('Stream is instance of MediaStream:', stream instanceof MediaStream);
+
+    const videoElement = document.getElementById(`video-${username}`);
+    if (videoElement) {
+        videoElement.srcObject = stream;
+        videoElement.play().catch((error) => {
+            console.error('Error playing video:', error);
+        });
+    } else {
+        createVideoElement(username);
+        const newVideoElement = document.getElementById(`video-${username}`);
+        newVideoElement.srcObject = stream;
+        newVideoElement.play().catch((error) => {
+            console.error('Error playing video:', error);
+        });
+    }
+}
+
