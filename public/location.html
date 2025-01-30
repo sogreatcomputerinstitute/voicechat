@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Locations</title>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; margin: 0; }
+        canvas { border: 1px solid black; margin-top: 20px; }
+        #user-list { list-style: none; padding: 0; }
+        #user-list li { margin-bottom: 10px; }
+    </style>
+</head>
+<body>
+    <h1>User Locations</h1>
+    <ul id="user-list"></ul>
+    <canvas id="map-canvas" width="800" height="600"></canvas>
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io();
+        const canvas = document.getElementById('map-canvas');
+        const ctx = canvas.getContext('2d');
+        const userList = document.getElementById('user-list');
+
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition((position) => {
+                const { latitude, longitude } = position.coords;
+                const username = prompt("Enter your username:");
+                socket.emit('location', { username, latitude, longitude });
+            });
+        } else {
+            alert('Geolocation is not supported by this browser.');
+        }
+
+        socket.on('locationUpdate', (users) => {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            userList.innerHTML = '';
+
+            const userEntries = Object.entries(users);
+            userEntries.forEach(([id, user]) => {
+                const { username, latitude, longitude } = user;
+                const x = canvas.width * (longitude + 180) / 360;
+                const y = canvas.height * (90 - latitude) / 180;
+                ctx.fillStyle = 'blue';
+                ctx.beginPath();
+                ctx.arc(x, y, 5, 0, 2 * Math.PI);
+                ctx.fill();
+                ctx.font = '12px Arial';
+                ctx.fillText(username, x + 10, y + 5);
+            });
+
+            userEntries.forEach(([id1, user1], index1) => {
+                userEntries.forEach(([id2, user2], index2) => {
+                    if (index1 < index2) {
+                        const distance = geolib.getDistance(
+                            { latitude: user1.latitude, longitude: user1.longitude },
+                            { latitude: user2.latitude, longitude: user2.longitude }
+                        );
+
+                        const x1 = canvas.width * (user1.longitude + 180) / 360;
+                        const y1 = canvas.height * (90 - user1.latitude) / 180;
+                        const x2 = canvas.width * (user2.longitude + 180) / 360;
+                        const y2 = canvas.height * (90 - user2.latitude) / 180;
+
+                        ctx.strokeStyle = 'blue';
+                        ctx.beginPath();
+                        ctx.moveTo(x1, y1);
+                        ctx.lineTo(x2, y2);
+                        ctx.stroke();
+
+                        const midpointX = (x1 + x2) / 2;
+                        const midpointY = (y1 + y2) / 2;
+                        ctx.font = '12px Arial';
+                        ctx.fillText(`${distance} m`, midpointX + 10, midpointY);
+                    }
+                });
+            });
+
+            userEntries.forEach(([id, user]) => {
+                const li = document.createElement('li');
+                li.textContent = `${user.username}: (${user.latitude}, ${user.longitude})`;
+                userList.appendChild(li);
+            });
+        });
+    </script>
+</body>
+</html>

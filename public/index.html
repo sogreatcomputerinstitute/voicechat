@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Walkie Talkie</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="icon" href="images/icon.png" type="image/x-icon">
+</head>
+<body>
+  <div id="users-container">
+    <p>No connected devices</p>
+</div>
+<div class="main">
+  <form id="join-form">
+    <label for="username">Enter Your name:</label>
+    <input type="text" id="username" required>
+    <button id="join-btn">Join</button>
+  </form>
+  <button id="toggle-sidebar-btn">Show Connected Users</button>
+    
+  <div id="videos-container"></div>
+  <div id="fullscreen-container">
+    <button id="exit-fullscreen-btn">Exit Fullscreen</button>
+  </div>
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="client.js"></script></div>
+  
+</body>
+</html>
