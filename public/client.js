@@ -1,4 +1,4 @@
-const socket = io('http://localhost:3000');
+const socket = io();
 const joinForm = document.getElementById('join-form');
 const usernameInput = document.getElementById('username');
 const videosContainer = document.getElementById('videos-container');
