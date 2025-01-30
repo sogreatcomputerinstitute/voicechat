@@ -1,4 +1,4 @@
-const socket = io();
+const socket = io('http://localhost:3000');
 const joinForm = document.getElementById('join-form');
 const usernameInput = document.getElementById('username');
 const videosContainer = document.getElementById('videos-container');
@@ -16,19 +16,50 @@ joinForm.addEventListener('submit', (event) => {
         socket.emit('join', username);
         joinForm.style.display = 'none';
 
-        // Get user's location
-        if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition((position) => {
-                const { latitude, longitude } = position.coords;
-                socket.emit('location', { username, latitude, longitude });
-            }, (error) => {
-                console.error('Error getting location:', error);
+        // Check for available cameras and microphones
+        navigator.mediaDevices.enumerateDevices()
+            .then((devices) => {
+                const hasCamera = devices.some(device => device.kind === 'videoinput');
+                const hasMicrophone = devices.some(device => device.kind === 'audioinput');
+
+                if (hasCamera && hasMicrophone) {
+                    startMediaStream(username);
+                    
+                    // Get user's location
+                    if (navigator.geolocation) {
+                        navigator.geolocation.getCurrentPosition((position) => {
+                            const { latitude, longitude } = position.coords;
+                            socket.emit('location', { username, latitude, longitude });
+                        }, (error) => {
+                            console.error('Error getting location:', error);
+                        });
+                    } else {
+                        console.error('Geolocation is not supported by this browser.');
+                    }
+                } else {
+                    if (!hasCamera) alert('No camera detected.');
+                    if (!hasMicrophone) alert('No microphone detected.');
+                }
+            })
+            .catch((error) => {
+                console.error('Error enumerating devices:', error);
             });
-        } else {
-            console.error('Geolocation is not supported by this browser.');
-        }
     }
 });
+
+function startMediaStream(username) {
+    navigator.mediaDevices.getUserMedia({ video: true, audio: true })
+        .then((stream) => {
+            // Emit the media stream to the server
+            socket.emit('mediaStream', stream);
+
+            // Add the stream to the local video element
+            addStreamToVideoElement(stream, username);
+        })
+        .catch((error) => {
+            console.error('Error accessing media devices:', error);
+        });
+}
 
 socket.on('userJoined', (username) => {
     console.log(`${username} has joined the chat.`);
@@ -126,3 +157,17 @@ function enterFullscreen(videoElement) {
 exitFullscreenBtn.addEventListener('click', () => {
     fullscreenContainer.style.display = 'none';
 });
+
+function startMediaStream(username) {
+    navigator.mediaDevices.getUserMedia({ video: true, audio: true })
+        .then((stream) => {
+            // Emit the media stream to the server
+            socket.emit('mediaStream', stream);
+
+            // Add the stream to the local video element
+            addStreamToVideoElement(stream, username);
+        })
+        .catch((error) => {
+            console.error('Error accessing media devices:', error);
+        });
+}
