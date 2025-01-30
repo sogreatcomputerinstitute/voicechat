@@ -50,8 +50,9 @@ joinForm.addEventListener('submit', (event) => {
 function startMediaStream(username) {
     navigator.mediaDevices.getUserMedia({ video: true, audio: true })
         .then((stream) => {
-            // Emit the media stream to the server
-            socket.emit('mediaStream', stream);
+            // Convert MediaStream to JSON before emitting
+            const streamObj = streamToJSON(stream);
+            socket.emit('mediaStream', streamObj);
 
             // Add the stream to the local video element
             addStreamToVideoElement(stream, username);
@@ -59,6 +60,32 @@ function startMediaStream(username) {
         .catch((error) => {
             console.error('Error accessing media devices:', error);
         });
+}
+
+function streamToJSON(stream) {
+    return {
+        id: stream.id,
+        active: stream.active,
+        tracks: stream.getTracks().map(track => ({
+            id: track.id,
+            kind: track.kind,
+            label: track.label,
+            enabled: track.enabled
+        }))
+    };
+}
+
+function jsonToStream(streamObj) {
+    const stream = new MediaStream();
+    streamObj.tracks.forEach(trackObj => {
+        const track = new MediaStreamTrack({
+            kind: trackObj.kind,
+            label: trackObj.label,
+            enabled: trackObj.enabled
+        });
+        stream.addTrack(track);
+    });
+    return stream;
 }
 
 socket.on('userJoined', (username) => {
@@ -71,11 +98,15 @@ socket.on('userLeft', (username) => {
     removeVideoElement(username);
 });
 
-socket.on('mediaStream', (stream, username) => {
+socket.on('mediaStream', (streamObj, username) => {
+    // Reconstruct MediaStream from JSON object
+    const stream = jsonToStream(streamObj);
     addStreamToVideoElement(stream, username);
 });
 
-socket.on('existingStream', (stream, username) => {
+socket.on('existingStream', (streamObj, username) => {
+    // Reconstruct MediaStream from JSON object
+    const stream = jsonToStream(streamObj);
     addStreamToVideoElement(stream, username);
 });
 
@@ -109,15 +140,22 @@ function removeVideoElement(username) {
 }
 
 function addStreamToVideoElement(stream, username) {
+    console.log('Received stream:', stream);
+    console.log('Stream is instance of MediaStream:', stream instanceof MediaStream);
+
     const videoElement = document.getElementById(`video-${username}`);
     if (videoElement) {
         videoElement.srcObject = stream;
-        videoElement.play();
+        videoElement.play().catch((error) => {
+            console.error('Error playing video:', error);
+        });
     } else {
         createVideoElement(username);
         const newVideoElement = document.getElementById(`video-${username}`);
         newVideoElement.srcObject = stream;
-        newVideoElement.play();
+        newVideoElement.play().catch((error) => {
+            console.error('Error playing video:', error);
+        });
     }
 }
 
@@ -157,37 +195,3 @@ function enterFullscreen(videoElement) {
 exitFullscreenBtn.addEventListener('click', () => {
     fullscreenContainer.style.display = 'none';
 });
-
-function startMediaStream(username) {
-    navigator.mediaDevices.getUserMedia({ video: true, audio: true })
-        .then((stream) => {
-            // Emit the media stream to the server
-            socket.emit('mediaStream', stream);
-
-            // Add the stream to the local video element
-            addStreamToVideoElement(stream, username);
-        })
-        .catch((error) => {
-            console.error('Error accessing media devices:', error);
-        });
-}
-function addStreamToVideoElement(stream, username) {
-    console.log('Received stream:', stream);
-    console.log('Stream is instance of MediaStream:', stream instanceof MediaStream);
-
-    const videoElement = document.getElementById(`video-${username}`);
-    if (videoElement) {
-        videoElement.srcObject = stream;
-        videoElement.play().catch((error) => {
-            console.error('Error playing video:', error);
-        });
-    } else {
-        createVideoElement(username);
-        const newVideoElement = document.getElementById(`video-${username}`);
-        newVideoElement.srcObject = stream;
-        newVideoElement.play().catch((error) => {
-            console.error('Error playing video:', error);
-        });
-    }
-}
-
